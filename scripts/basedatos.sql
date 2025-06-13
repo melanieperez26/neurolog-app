@@ -34,6 +34,9 @@ DECLARE
   -- Estados booleanos
   co_true CONSTANT BOOLEAN := TRUE;
   co_false CONSTANT BOOLEAN := FALSE;
+  
+  -- SQL Clauses
+  co_disable_rls CONSTANT TEXT := 'DISABLE ROW LEVEL SECURITY';
 END;
 /
 
@@ -48,12 +51,11 @@ END;
 -- ================================================================
 
 -- Deshabilitar RLS temporalmente
-ALTER TABLE IF EXISTS daily_logs DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS user_child_relations DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS children DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS  profiles DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS categories DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS audit_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS daily_logs co_disable_rls;
+ALTER TABLE IF EXISTS user_child_relations co_disable_rls;
+ALTER TABLE IF EXISTS profiles co_disable_rls;
+ALTER TABLE IF EXISTS categories co_disable_rls;
+ALTER TABLE IF EXISTS audit_logs co_disable_rls;
 
 -- Eliminar vistas
 DROP VIEW IF EXISTS user_accessible_children CASCADE;

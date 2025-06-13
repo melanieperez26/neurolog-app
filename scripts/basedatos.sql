@@ -35,7 +35,7 @@
 \set creator_check 'created_by = auth.uid()'
 \set owner_check 'user_id = auth.uid()'
 \set logged_by_check 'logged_by = auth.uid()'
-\set child_creator_check 'EXISTS (SELECT 1 FROM children WHERE id = child_id AND created_by = auth.uid())'
+\set child_creator_check '(SELECT COUNT(*) FROM children WHERE id = child_id AND created_by = auth.uid()) > 0'
 
 -- ================================================================
 -- NEUROLOG APP - SCRIPT COMPLETO DE BASE DE DATOS
@@ -293,8 +293,9 @@ CREATE TRIGGER on_auth_user_created
 CREATE OR REPLACE FUNCTION user_can_access_child(child_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM children 
+  RETURN (
+    SELECT COUNT(*) > 0 
+    FROM children
     WHERE id = child_uuid 
       AND created_by = auth.uid()
   );
@@ -305,8 +306,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION user_can_edit_child(child_uuid UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM children 
+  RETURN (
+     SELECT COUNT(*) > 0 
+    FROM children 
     WHERE id = child_uuid 
       AND created_by = auth.uid()
   );
@@ -448,11 +450,9 @@ CREATE POLICY "Users can view own relations" ON user_child_relations
 CREATE POLICY "Users can create relations for own children" ON user_child_relations
   FOR INSERT WITH CHECK (
     granted_by = auth.uid() AND
-    EXISTS (
-      SELECT 1 FROM children 
-      WHERE id = user_child_relations.child_id 
-        AND created_by = auth.uid()
-    )
+    (SELECT COUNT(*) FROM children 
+     WHERE id = user_child_relations.child_id 
+       AND created_by = auth.uid()) > 0
   );
 
 -- POLÍTICAS PARA DAILY_LOGS (SIMPLES)

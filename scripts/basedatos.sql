@@ -14,19 +14,12 @@
 \set rel_specialist 'specialist'
 \set rel_observer 'observer'
 \set rel_family 'family'
-\set op_insert 'INSERT'
-\set op_update 'UPDATE'
-\set op_delete 'DELETE'
-\set op_select 'SELECT'
 \set risk_low 'low'
 \set risk_medium 'medium'
 \set risk_high 'high'
 \set risk_critical 'critical'
-\set true_value 'true'
-\set false_value 'false'
-\set disable_rls 'DISABLE ROW LEVEL SECURITY'
 
--- Variables para uso en CHECK constraints
+-- Variables compuestas para CHECK constraints
 \set role_values ':role_parent, :role_teacher, :role_specialist, :role_admin'
 \set rel_values ':rel_parent, :rel_teacher, :rel_specialist, :rel_observer, :rel_family'
 \set op_values ':op_insert, :op_update, :op_delete, :op_select'
@@ -42,7 +35,7 @@
 \set creator_check 'created_by = auth.uid()'
 \set owner_check 'user_id = auth.uid()'
 \set logged_by_check 'logged_by = auth.uid()'
-\set child_creator_check 'EXISTS (SELECT 1 FROM children WHERE id = :child_id AND created_by = auth.uid())'
+\set child_creator_check 'EXISTS (SELECT 1 FROM children WHERE id = child_id AND created_by = auth.uid())'
 
 -- ================================================================
 -- NEUROLOG APP - SCRIPT COMPLETO DE BASE DE DATOS
@@ -96,7 +89,7 @@ CREATE TABLE profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT NOT NULL,
-  role TEXT CHECK (role IN (co_role_parent, co_role_teacher, co_role_specialist, co_role_admin)) DEFAULT co_role_parent,
+  role TEXT CHECK (role IN (:role_parent, :role_teacher, :role_specialist, :role_admin)) DEFAULT :role_parent,
   avatar_url TEXT,
   phone TEXT,
   is_active BOOLEAN DEFAULT TRUE,
@@ -151,7 +144,7 @@ CREATE TABLE user_child_relations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   child_id UUID REFERENCES children(id) ON DELETE CASCADE NOT NULL,
-  relationship_type TEXT CHECK (relationship_type IN (co_rel_parent, co_rel_teacher, co_rel_specialist, co_rel_observer, co_rel_family)) NOT NULL,
+  relationship_type TEXT CHECK (relationship_type IN (:rel_parent, :rel_teacher, :rel_specialist, :rel_observer, :rel_family)) NOT NULL,
   can_edit BOOLEAN DEFAULT FALSE,
   can_view BOOLEAN DEFAULT TRUE,
   can_export BOOLEAN DEFAULT FALSE,
@@ -175,7 +168,7 @@ CREATE TABLE daily_logs (
   title TEXT NOT NULL CHECK (length(trim(title)) >= 2),
   content TEXT NOT NULL,
   mood_score INTEGER CHECK (mood_score >= 1 AND mood_score <= 10),
-  intensity_level TEXT CHECK (intensity_level IN ('low', 'medium', 'high')) DEFAULT 'medium',
+  intensity_level TEXT CHECK (intensity_level IN (:risk_low, :risk_medium, :risk_high)) DEFAULT :risk_medium,
   logged_by UUID REFERENCES profiles(id) NOT NULL,
   log_date DATE DEFAULT CURRENT_DATE,
   is_private BOOLEAN DEFAULT FALSE,
@@ -199,7 +192,7 @@ CREATE TABLE daily_logs (
 CREATE TABLE audit_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   table_name TEXT NOT NULL,
-  operation TEXT CHECK (operation IN (co_op_insert, co_op_update, co_op_delete, co_op_select)) NOT NULL,
+  operation TEXT CHECK (operation IN (:op_insert, :op_update, :op_delete, :op_select)) NOT NULL,
   record_id TEXT,
   user_id UUID REFERENCES profiles(id),
   user_role TEXT,
@@ -209,7 +202,7 @@ CREATE TABLE audit_logs (
   ip_address INET,
   user_agent TEXT,
   session_id TEXT,
-  risk_level TEXT CHECK (risk_level IN (co_risk_low, co_risk_medium, co_risk_high, co_risk_critical)) DEFAULT co_risk_low,
+  risk_level TEXT CHECK (risk_level IN (:risk_low, :risk_medium, :risk_high, :risk_critical)) DEFAULT :risk_low,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -265,7 +258,7 @@ BEGIN
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'role', 'parent')
+    COALESCE(NEW.raw_user_meta_data->>'role', :rel_parent::)
   );
   RETURN NEW;
 END;
@@ -352,7 +345,7 @@ BEGIN
       'details', action_details,
       'timestamp', NOW()
     ),
-    'medium'
+    :risk_medium
   );
 EXCEPTION
   WHEN OTHERS THEN
@@ -368,7 +361,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE VIEW user_accessible_children AS
 SELECT 
   c.*,
-  'parent'::TEXT as relationship_type,
+  :rel_parent::TEXT as relationship_type,
   true as can_edit,
   true as can_view,
   true as can_export,
@@ -448,9 +441,10 @@ CREATE POLICY "Authenticated users can create children" ON children
     created_by = auth.uid()
   );
 
-CREATE POLICY "Creators can update own children" ON children
-  FOR UPDATE USING (created_by = auth.uid())
-  WITH CHECK (created_by = auth.uid());
+
+CREATE POLICY "Creators can update children" ON children
+  FOR UPDATE USING (:creator_check)
+  WITH CHECK (:creator_check);
 
 -- POLÍTICAS PARA USER_CHILD_RELATIONS (SIMPLES)
 CREATE POLICY "Users can view own relations" ON user_child_relations

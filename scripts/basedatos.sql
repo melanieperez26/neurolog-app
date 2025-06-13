@@ -391,7 +391,7 @@ SELECT
   COUNT(CASE WHEN dl.is_private THEN 1 END) as private_logs,
   COUNT(CASE WHEN dl.reviewed_at IS NOT NULL THEN 1 END) as reviewed_logs
 FROM children c
-LEFT JOIN daily_logs dl ON c.id = dl.child_id AND dl.is_deleted = false
+LEFT JOIN daily_logs dl ON c.id = dl.child_id AND NOT dl.is_deleted
 WHERE c.created_by = auth.uid()
 GROUP BY c.id, c.name;
 
@@ -505,11 +505,13 @@ DECLARE
   policy_count INTEGER;
   function_count INTEGER;
   category_count INTEGER;
+  schema_public CONSTANT TEXT := 'public';
+  table_profiles CONSTANT TEXT := 'profiles';
 BEGIN
   -- Contar tablas
   SELECT COUNT(*) INTO table_count
   FROM information_schema.tables 
-  WHERE table_schema = 'public' 
+  WHERE table_schema = schema_public 
     AND table_name IN ('profiles', 'children', 'user_child_relations', 'daily_logs', 'categories', 'audit_logs');
   
   result := result || 'Tablas creadas: ' || table_count || '/6' || E'\n';
@@ -517,7 +519,7 @@ BEGIN
   -- Contar políticas
   SELECT COUNT(*) INTO policy_count
   FROM pg_policies 
-  WHERE schemaname = 'public';
+  WHERE schemaname = schema_public
   
   result := result || 'Políticas RLS: ' || policy_count || E'\n';
   

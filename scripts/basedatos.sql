@@ -4,41 +4,45 @@
 -- Ejecutar completo en Supabase SQL Editor
 -- Borra todo y crea desde cero según últimas actualizaciones
 
--- Definición de constantes
-DECLARE
-  -- Roles de usuario
-  co_role_parent CONSTANT TEXT := 'parent';
-  co_role_teacher CONSTANT TEXT := 'teacher';
-  co_role_specialist CONSTANT TEXT := 'specialist';
-  co_role_admin CONSTANT TEXT := 'admin';
-  
-  -- Tipos de relación
-  co_rel_parent CONSTANT TEXT := 'parent';
-  co_rel_teacher CONSTANT TEXT := 'teacher';
-  co_rel_specialist CONSTANT TEXT := 'specialist';
-  co_rel_observer CONSTANT TEXT := 'observer';
-  co_rel_family CONSTANT TEXT := 'family';
-  
-  -- Operaciones de auditoría
-  co_op_insert CONSTANT TEXT := 'INSERT';
-  co_op_update CONSTANT TEXT := 'UPDATE';
-  co_op_delete CONSTANT TEXT := 'DELETE';
-  co_op_select CONSTANT TEXT := 'SELECT';
-  
-  -- Niveles de riesgo
-  co_risk_low CONSTANT TEXT := 'low';
-  co_risk_medium CONSTANT TEXT := 'medium';
-  co_risk_high CONSTANT TEXT := 'high';
-  co_risk_critical CONSTANT TEXT := 'critical';
-  
-  -- Estados booleanos
-  co_true CONSTANT BOOLEAN := TRUE;
-  co_false CONSTANT BOOLEAN := FALSE;
-  
-  -- SQL Clauses
-  co_disable_rls CONSTANT TEXT := 'DISABLE ROW LEVEL SECURITY';
-END;
-/
+-- Definición de variables de configuración PostgreSQL
+\set role_parent 'parent'
+\set role_teacher 'teacher'
+\set role_specialist 'specialist'
+\set role_admin 'admin'
+\set rel_parent 'parent'
+\set rel_teacher 'teacher'
+\set rel_specialist 'specialist'
+\set rel_observer 'observer'
+\set rel_family 'family'
+\set op_insert 'INSERT'
+\set op_update 'UPDATE'
+\set op_delete 'DELETE'
+\set op_select 'SELECT'
+\set risk_low 'low'
+\set risk_medium 'medium'
+\set risk_high 'high'
+\set risk_critical 'critical'
+\set true_value 'true'
+\set false_value 'false'
+\set disable_rls 'DISABLE ROW LEVEL SECURITY'
+
+-- Variables para uso en CHECK constraints
+\set role_values ':role_parent, :role_teacher, :role_specialist, :role_admin'
+\set rel_values ':rel_parent, :rel_teacher, :rel_specialist, :rel_observer, :rel_family'
+\set op_values ':op_insert, :op_update, :op_delete, :op_select'
+\set risk_values ':risk_low, :risk_medium, :risk_high, :risk_critical'
+\set boolean_values ':true_value, :false_value'
+
+-- Variables para uso en DEFAULT values
+\set default_role ':role_parent'
+\set default_risk ':risk_low'
+\set default_boolean ':false_value'
+
+-- Variables para uso en políticas RLS
+\set creator_check 'created_by = auth.uid()'
+\set owner_check 'user_id = auth.uid()'
+\set logged_by_check 'logged_by = auth.uid()'
+\set child_creator_check 'EXISTS (SELECT 1 FROM children WHERE id = :child_id AND created_by = auth.uid())'
 
 -- ================================================================
 -- NEUROLOG APP - SCRIPT COMPLETO DE BASE DE DATOS

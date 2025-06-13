@@ -322,6 +322,8 @@ CREATE OR REPLACE FUNCTION audit_sensitive_access(
   action_details TEXT DEFAULT NULL
 )
 RETURNS VOID AS $$
+DECLARE
+  audit_result BOOLEAN -- Nivel de riesgo por defecto
 BEGIN
   INSERT INTO audit_logs (
     table_name,
@@ -343,7 +345,11 @@ BEGIN
       'timestamp', NOW()
     ),
     :risk_medium
-  );
+  );RETURNING TRUE INTO audit_result;
+
+  IF NOT audit_result THEN
+    RAISE EXCEPTION 'Audit log failed for resource %', resource_id;
+  END IF;
 EXCEPTION
   WHEN OTHERS THEN
     NULL; -- No fallar por errores de auditoría

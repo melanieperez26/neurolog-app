@@ -34,10 +34,8 @@ import {
   EyeIcon,
   UserPlusIcon,
   CalendarIcon,
-  MapPinIcon,
   HeartIcon,
   TrendingUpIcon,
-  DownloadIcon,
   UsersIcon,
   BookOpenIcon,
   RefreshCwIcon
@@ -50,10 +48,10 @@ import { es } from 'date-fns/locale';
 // ================================================================
 
 interface ChildCardProps {
-  child: ChildWithRelation;
-  onEdit: (child: ChildWithRelation) => void;
-  onViewDetails: (child: ChildWithRelation) => void;
-  onManageUsers: (child: ChildWithRelation) => void;
+  readonly child: ChildWithRelation;
+  readonly onEdit: (child: ChildWithRelation) => void;
+  readonly onViewDetails: (child: ChildWithRelation) => void;
+  readonly onManageUsers: (child: ChildWithRelation) => void;
 }
 
 function ChildCard({ child, onEdit, onViewDetails, onManageUsers }: ChildCardProps) {
@@ -96,7 +94,7 @@ function ChildCard({ child, onEdit, onViewDetails, onManageUsers }: ChildCardPro
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={child.avatar_url || undefined} />
+              <AvatarImage src={child.avatar_url ?? undefined} />
               <AvatarFallback className="bg-blue-100 text-blue-600">
                 {child.name.charAt(0).toUpperCase()}
               </AvatarFallback>
@@ -190,8 +188,8 @@ function ChildCard({ child, onEdit, onViewDetails, onManageUsers }: ChildCardPro
 }
 
 interface FiltersCardProps {
-  filters: ChildFilters;
-  onFiltersChange: (filters: ChildFilters) => void;
+  readonly filters: ChildFilters;
+  readonly onFiltersChange: (filters: ChildFilters) => void;
 }
 
 function FiltersCard({ filters, onFiltersChange }: FiltersCardProps) {
@@ -207,12 +205,12 @@ function FiltersCard({ filters, onFiltersChange }: FiltersCardProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Búsqueda por nombre */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Buscar por nombre</label>
+            <label htmlFor="search-input" className="text-sm font-medium">Buscar por nombre</label>
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Nombre del niño..."
-                value={filters.search || ''}
+                value={filters.search ?? ''}
                 onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
                 className="pl-10"
               />
@@ -221,7 +219,7 @@ function FiltersCard({ filters, onFiltersChange }: FiltersCardProps) {
 
           {/* Relación */}
           <Select 
-            value={filters.relationship_type || 'all'} 
+            value={filters.relationship_type ?? 'all'} 
             onValueChange={(value) => onFiltersChange({ 
               ...filters, 
               relationship_type: value === 'all' ? undefined : value as RelationshipType 
@@ -242,13 +240,13 @@ function FiltersCard({ filters, onFiltersChange }: FiltersCardProps) {
 
           {/* Rango de edad */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Edad máxima</label>
+            <label htmlFor="max-age" className="text-sm font-medium">Edad máxima</label>
             <Input
               type="number"
               placeholder="Años"
               min="0"
               max="25"
-              value={filters.max_age || ''}
+              value={filters.max_age ?? ''}
               onChange={(e) => onFiltersChange({ 
                 ...filters, 
                 max_age: e.target.value ? parseInt(e.target.value) : undefined 
@@ -373,7 +371,7 @@ export default function ChildrenPage() {
   const renderLoadingState = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[...Array(6)].map((_, i) => (
-        <Card key={i} className="animate-pulse">
+        <Card key={`loading-card-${i}`} className="animate-pulse">
           <CardHeader>
             <div className="flex items-center space-x-4">
               <div className="rounded-full bg-gray-200 h-12 w-12"></div>

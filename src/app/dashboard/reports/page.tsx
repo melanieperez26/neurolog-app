@@ -5,10 +5,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Select,
@@ -18,7 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { useChildren } from '@/hooks/use-children';
 import { useLogs } from '@/hooks/use-logs';
 import { ProgressChart } from '@/components/reports/ProgressChart';
@@ -29,24 +27,28 @@ import { ExportReportDialog } from '@/components/reports/ExportReportDialog';
 import { TimePatterns, CorrelationAnalysis, AdvancedInsights } from '@/components/reports/TimePatterns';
 import type { DateRange } from 'react-day-picker';
 import { 
-  BarChart3,
   TrendingUp,
   Calendar,
   Download,
   FileText,
   PieChart,
-  LineChart,
-  Users,
-  Activity,
   Heart,
   Target,
-  Award,
-  AlertTriangle,
-  CheckCircle,
-  Clock
+  AlertTriangle
 } from 'lucide-react';
-import { format, subDays, subWeeks, subMonths } from 'date-fns';
+import { subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+// ================================================================
+// FUNCIÓN HELPER PARA CALCULAR PROMEDIO DE MOOD
+// ================================================================
+function calculateAverageMood(logs: any[]): number {
+  const validLogs = logs.filter(l => typeof l.mood_score === 'number');
+  if (validLogs.length === 0) return 0;
+  
+  const total = validLogs.reduce((sum, log) => sum + log.mood_score, 0);
+  return total / validLogs.length;
+}
 
 // ================================================================
 // FUNCIÓN HELPER PARA CALCULAR TENDENCIA DE MEJORA
@@ -71,9 +73,8 @@ function calculateImprovementTrend(logs: any[]): number {
 }
 
 export default function ReportsPage() {
-  const { user } = useAuth();
   const { children, loading: childrenLoading } = useChildren();
-  const { logs, stats, loading: logsLoading } = useLogs();
+  const { logs, loading: logsLoading } = useLogs();
   
   const [selectedChild, setSelectedChild] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -103,11 +104,9 @@ export default function ReportsPage() {
   // Calcular métricas
   const metrics = {
     totalLogs: filteredLogs.length,
-    averageMood: filteredLogs.filter(l => l.mood_score).length > 0 
-      ? (filteredLogs.filter(l => l.mood_score).reduce((sum, l) => sum + l.mood_score, 0) / filteredLogs.filter(l => l.mood_score).length)
-      : 0,
+    averageMood: calculateAverageMood(filteredLogs),
     improvementTrend: calculateImprovementTrend(filteredLogs),
-    activeCategories: new Set(filteredLogs.map(l => l.category_name).filter(Boolean)).size,
+    activeCategories: new Set(filteredLogs.map(l => l.category_id).filter(Boolean)).size,
     followUpsRequired: filteredLogs.filter(l => l.follow_up_required).length,
     activeDays: new Set(filteredLogs.map(l => new Date(l.created_at).toDateString())).size
   };
@@ -144,7 +143,7 @@ export default function ReportsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">Niño</label>
+              <label htmlFor="child-select" className="text-sm font-medium mb-2 block">Niño</label>
               <Select value={selectedChild} onValueChange={setSelectedChild}>
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar niño" />
@@ -164,7 +163,7 @@ export default function ReportsPage() {
               <label className="text-sm font-medium mb-2 block">Período</label>
               <DatePickerWithRange 
                 date={dateRange}
-                onDateChange={setDateRange}
+                setDate={setDateRange}
               />
             </div>
 
@@ -352,12 +351,12 @@ export default function ReportsPage() {
 // ================================================================
 
 interface MetricCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ComponentType<{ className?: string }>;
-  color: 'blue' | 'red' | 'purple' | 'green' | 'orange' | 'gray';
-  subtitle: string;
-  suffix?: string;
+  readonly title: string;
+  readonly value: string | number;
+  readonly icon: React.ComponentType<{ className?: string }>;
+  readonly color: 'blue' | 'red' | 'purple' | 'green' | 'orange' | 'gray';
+  readonly subtitle: string;
+  readonly suffix?: string;
 }
 
 function MetricCard({ title, value, icon: Icon, color, subtitle, suffix }: MetricCardProps) {

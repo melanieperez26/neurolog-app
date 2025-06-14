@@ -26,35 +26,23 @@
 # Feel free to take a look at our documentation (https://docs.sonarcloud.io/getting-started/github/)
 # or reach out to our community forum if you need some help (https://community.sonarsource.com/c/help/sc/9)
 
-name: SonarCloud analysis
-
+name: Build
 on:
   push:
-    branches: [ "mejoras-calidad" ]
+    branches:
+      - mejoras-calidad
   pull_request:
-    branches: [ "mejoras-calidad" ]
-  workflow_dispatch:
-
-permissions:
-  pull-requests: read
-
+    types: [opened, synchronize, reopened]
 jobs:
-  Analysis:
-    runs-on: ubuntu-latest
-
+  sonarqube:
+    name: SonarQube
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2.2.0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=melanieperez26_neurolog-app
-            -Dsonar.organization=melanieperez26-1
-            -Dsonar.branch.name=mejoras-calidad
 

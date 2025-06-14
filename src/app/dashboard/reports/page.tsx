@@ -39,6 +39,41 @@ import {
 import { subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+// Función para determinar el color del estado de ánimo
+const getMoodColor = (averageMood: number): MetricCardProps['color'] => {
+  if (averageMood >= 4) return 'green';
+  if (averageMood >= 3) return 'orange';
+  return 'red';
+};
+
+// Función para determinar el subtítulo del estado de ánimo
+const getMoodSubtitle = (averageMood: number): string => {
+  if (averageMood >= 4) return 'Excelente';
+  if (averageMood >= 3) return 'Regular';
+  return 'Bajo';
+};  
+
+// Función para determinar el icono de la tendencia
+const getTrendIcon = (improvementTrend: number) => {
+  if (improvementTrend > 0) return TrendingUp;
+  if (improvementTrend < 0) return TrendingUp;
+  return Target;
+};
+
+// Función para determinar el color de la tendencia
+const getTrendColor = (improvementTrend: number): MetricCardProps['color'] => {
+  if (improvementTrend > 0) return 'green';
+  if (improvementTrend < 0) return 'red';
+  return 'gray';
+};
+
+// Función para determinar el subtítulo de la tendencia
+const getTrendSubtitle = (improvementTrend: number): string => {
+  if (improvementTrend > 0) return 'Mejorando';
+  if (improvementTrend < 0) return 'Necesita atención';
+  return 'Estable';
+};
+
 // ================================================================
 // FUNCIÓN HELPER PARA CALCULAR PROMEDIO DE MOOD
 // ================================================================
@@ -160,10 +195,11 @@ export default function ReportsPage() {
             </div>
             
             <div>
-              <label className="text-sm font-medium mb-2 block">Período</label>
+              <label  htmlFor="date-range" className="text-sm font-medium mb-2 block">Período</label>
               <DatePickerWithRange 
                 date={dateRange}
                 setDate={setDateRange}
+                id="date-range"
               />
             </div>
 
@@ -200,16 +236,16 @@ export default function ReportsPage() {
           value={metrics.averageMood.toFixed(1)}
           suffix="/5"
           icon={Heart}
-          color={metrics.averageMood >= 4 ? 'green' : metrics.averageMood >= 3 ? 'orange' : 'red'}
-          subtitle="Promedio del período"
+          color={getMoodColor(metrics.averageMood)}
+          subtitle={getMoodSubtitle(metrics.averageMood)}
         />
         
         <MetricCard
           title="Tendencia"
           value={metrics.improvementTrend > 0 ? '+' : ''}
-          icon={metrics.improvementTrend > 0 ? TrendingUp : metrics.improvementTrend < 0 ? TrendingUp : Target}
-          color={metrics.improvementTrend > 0 ? 'green' : metrics.improvementTrend < 0 ? 'red' : 'gray'}
-          subtitle={metrics.improvementTrend > 0 ? 'Mejorando' : metrics.improvementTrend < 0 ? 'Necesita atención' : 'Estable'}
+          icon={getTrendIcon(metrics.improvementTrend)}
+          color={getTrendColor(metrics.improvementTrend)}
+          subtitle={getTrendSubtitle(metrics.improvementTrend)}
         />
         
         <MetricCard

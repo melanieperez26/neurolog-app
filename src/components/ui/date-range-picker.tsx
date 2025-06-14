@@ -28,12 +28,14 @@ interface DatePickerWithRangeProps {
   readonly className?: string;
   readonly date?: DateRange;
   readonly setDate: (date: DateRange | undefined) => void;
+  readonly id?: string;
 }
 
 export function DatePickerWithRange({
   className,
   date,
   setDate,
+  id = 'date-range-picker'
 }: DatePickerWithRangeProps) {
   const formatDateRange = () => {
     if (!date?.from) return <span>Seleccionar fechas</span>;
@@ -55,7 +57,7 @@ export function DatePickerWithRange({
       <Popover>
         <PopoverTrigger asChild>
           <Button
-            id="date"
+            id={id}
             variant={'outline'}
             className={cn(
               'w-full justify-start text-left font-normal',

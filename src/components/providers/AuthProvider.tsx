@@ -368,54 +368,75 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     /**
      *  LISTENER DE AUTH MEJORADO - UNA SOLA SUBSCRIPCIÓN
      */
+    /**
+ *  LISTENER DE AUTH MEJORADO - UNA SOLA SUBSCRIPCIÓN
+ */
     const setupAuthListener = () => {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (!mountedRef.current) return;
+      type Session = {
+        user: User | null;
+        // Agregar otras propiedades de sesión si es necesario
+      };
+      const handleAuthChange = async (event: string, session: Session | null) => {
+        if (!mountedRef.current) return;
 
-          console.log('🔄 Auth state changed:', event);
+        console.log('🔄 Auth state changed:', event);
 
-          try {
-            if (event === 'SIGNED_IN' && session?.user) {
-              console.log('✅ User signed in, fetching profile...');
-              setLoading(true);
-              
-              await updateLastLogin(session.user.id);
-              
-              const profile = await fetchProfile(session.user.id);
-              if (profile && mountedRef.current) {
-                setUser(profile);
-                
-                const adminStatus = await checkAdminStatus(session.user.id);
-                if (mountedRef.current) {
-                  setIsAdmin(adminStatus);
-                }
-              }
-            } else if (event === 'SIGNED_OUT') {
-              console.log('👋 User signed out');
-              if (mountedRef.current) {
-                setUser(null);
-                setIsAdmin(false);
-                setError(null);
-              }
-            } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-              console.log('🔄 Token refreshed, maintaining user state');
-              // No necesitamos recargar el perfil en token refresh
-              // El usuario ya está cargado y el token se renovó automáticamente
-            }
-          } catch (err) {
-            console.error('❌ Error handling auth state change:', err);
-            if (mountedRef.current) {
-              setError('Error en el cambio de estado de autenticación');
-            }
-          } finally {
-            if (mountedRef.current) {
-              setLoading(false);
-            }
+        try {
+          setLoading(true);
+
+          if (event === 'SIGNED_IN' && session?.user) {
+            await handleSignedIn(session.user);
+          } else if (event === 'SIGNED_OUT') {
+            handleSignedOut();
+          } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+            handleTokenRefreshed();
+          }
+        } catch (err) {
+          handleAuthError(err);
+        } finally {
+          if (mountedRef.current) {
+            setLoading(false);
           }
         }
-      );
+      };
 
+      const handleSignedIn = async (user: User) => {
+        console.log('✅ User signed in, fetching profile...');
+        await updateLastLogin(user.id);
+        
+        const profile = await fetchProfile(user.id);
+        if (profile && mountedRef.current) {
+          setUser(profile);
+          const adminStatus = await checkAdminStatus(user.id);
+          if (mountedRef.current) {
+            setIsAdmin(adminStatus);
+          }
+        }
+      };
+
+      const handleSignedOut = () => {
+        console.log('👋 User signed out');
+        if (mountedRef.current) {
+          setUser(null);
+          setIsAdmin(false);
+          setError(null);
+        }
+      };
+
+      const handleTokenRefreshed = () => {
+        console.log('🔄 Token refreshed, maintaining user state');
+        // No necesitamos recargar el perfil en token refresh
+        // El usuario ya está cargado y el token se renovó automáticamente
+      };
+
+      const handleAuthError = (err: unknown) => {
+        console.error('❌ Error handling auth state change:', err);
+        if (mountedRef.current) {
+          setError('Error en el cambio de estado de autenticación');
+        }
+      };
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
       authSubscriptionRef.current = subscription;
       return subscription;
     };

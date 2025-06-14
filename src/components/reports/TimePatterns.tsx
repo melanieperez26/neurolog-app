@@ -249,73 +249,125 @@ export function CorrelationAnalysis({ logs }: CorrelationAnalysisProps) {
 // ================================================================
 
 export function AdvancedInsights({ logs }: AdvancedInsightsProps) {
-  const generateInsights = () => {
-    const insights = [];
-    
-    // Análisis de frecuencia
-    if (logs.length > 0) {
+    const generateInsights = () => {
+    const insights: {
+      type: string;
+      icon: React.ComponentType<LucideProps>;
+      title: string;
+      description: string;
+      recommendation: string;
+    }[] = [];
+
+    // Helper functions for specific insight types
+    const generateFrequencyInsight = () => {
       const daysWithLogs = new Set(logs.map(log => 
         new Date(log.created_at).toDateString()
       )).size;
       
-      const totalDays = 30; // últimos 30 días
+      const totalDays = 30;
       const frequency = (daysWithLogs / totalDays) * 100;
       
-      insights.push({
-        type: frequency > 80 ? 'success' : frequency > 50 ? 'warning' : 'info',
-        icon: frequency > 80 ? CheckCircle : frequency > 50 ? Target : AlertTriangle,
+      if (frequency > 80) {
+        return {
+          type: 'success',
+          icon: CheckCircle,
+          title: 'Consistencia en el registro',
+          description: `Registros en ${daysWithLogs} de ${totalDays} días (${frequency.toFixed(0)}%)`,
+          recommendation: 'Excelente consistencia en los registros'
+        };
+      }
+      
+      if (frequency > 50) {
+        return {
+          type: 'warning',
+          icon: Target,
+          title: 'Consistencia en el registro',
+          description: `Registros en ${daysWithLogs} de ${totalDays} días (${frequency.toFixed(0)}%)`,
+          recommendation: 'Buen ritmo de registro, mantén la consistencia'
+        };
+      }
+      
+      return {
+        type: 'info',
+        icon: AlertTriangle,
         title: 'Consistencia en el registro',
         description: `Registros en ${daysWithLogs} de ${totalDays} días (${frequency.toFixed(0)}%)`,
-        recommendation: frequency < 50 
-          ? 'Intenta mantener registros más regulares para obtener mejores insights'
-          : frequency < 80
-          ? 'Buen ritmo de registro, mantén la consistencia'
-          : 'Excelente consistencia en los registros'
-      });
-    }
+        recommendation: 'Intenta mantener registros más regulares para obtener mejores insights'
+      };
+    };
 
-    // Análisis de estado de ánimo
-    const moodLogs = logs.filter(log => log.mood_score);
-    if (moodLogs.length > 5) {
+    const generateMoodInsight = () => {
+      const moodLogs = logs.filter(log => log.mood_score);
+      if (moodLogs.length <= 5) return null;
+      
       const avgMood = moodLogs.reduce((sum, log) => sum + log.mood_score, 0) / moodLogs.length;
       const recent = moodLogs.slice(0, 7);
       const recentAvg = recent.reduce((sum, log) => sum + log.mood_score, 0) / recent.length;
-      
       const trend = recentAvg - avgMood;
       
-      insights.push({
-        type: trend > 0.5 ? 'success' : trend < -0.5 ? 'warning' : 'info',
+      if (trend > 0.5) {
+        return {
+          type: 'success',
+          icon: Brain,
+          title: 'Tendencia del estado de ánimo',
+          description: `Promedio general: ${avgMood.toFixed(1)}/5, últimos 7 días: ${recentAvg.toFixed(1)}/5`,
+          recommendation: 'Tendencia positiva en el estado de ánimo reciente'
+        };
+      }
+      
+      if (trend < -0.5) {
+        return {
+          type: 'warning',
+          icon: Brain,
+          title: 'Tendencia del estado de ánimo',
+          description: `Promedio general: ${avgMood.toFixed(1)}/5, últimos 7 días: ${recentAvg.toFixed(1)}/5`,
+          recommendation: 'Considera revisar factores que puedan estar afectando el bienestar'
+        };
+      }
+      
+      return {
+        type: 'info',
         icon: Brain,
         title: 'Tendencia del estado de ánimo',
         description: `Promedio general: ${avgMood.toFixed(1)}/5, últimos 7 días: ${recentAvg.toFixed(1)}/5`,
-        recommendation: trend > 0.5 
-          ? 'Tendencia positiva en el estado de ánimo reciente'
-          : trend < -0.5
-          ? 'Considera revisar factores que puedan estar afectando el bienestar'
-          : 'Estado de ánimo estable'
-      });
-    }
+        recommendation: 'Estado de ánimo estable'
+      };
+    };
 
-    // Análisis de categorías
-    const categoryCount = logs.reduce((acc, log) => {
-      if (log.category_name) {
-        acc[log.category_name] = (acc[log.category_name] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    const generateCategoryInsight = () => {
+      const categoryCount = logs.reduce((acc, log) => {
+        if (log.category_name) {
+          acc[log.category_name] = (acc[log.category_name] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
 
-    const categories = Object.entries(categoryCount);
-    if (categories.length > 0) {
-      const mostUsedCategory = categories.sort(([,a], [,b]) => b - a)[0];
+      const categories = Object.entries(categoryCount);
+      if (categories.length === 0) return null;
       
-      insights.push({
+      const mostUsedCategory = categories.sort(([,a], [,b]) => b - a)[0];
+      const percentage = (mostUsedCategory[1] / logs.length) * 100;
+      
+      return {
         type: 'info',
         icon: Target,
         title: 'Área de mayor atención',
-        description: `"${mostUsedCategory[0]}" representa ${((mostUsedCategory[1] / logs.length) * 100).toFixed(0)}% de los registros`,
+        description: `"${mostUsedCategory[0]}" representa ${percentage.toFixed(0)}% de los registros`,
         recommendation: 'Esta categoría requiere mayor atención y seguimiento'
-      });
+      };
+    };
+
+    // Generate each insight type
+    if (logs.length > 0) {
+      const frequencyInsight = generateFrequencyInsight();
+      if (frequencyInsight) insights.push(frequencyInsight);
     }
+
+    const moodInsight = generateMoodInsight();
+    if (moodInsight) insights.push(moodInsight);
+
+    const categoryInsight = generateCategoryInsight();
+    if (categoryInsight) insights.push(categoryInsight);
 
     return insights;
   };
